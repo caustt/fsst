@@ -60,6 +60,10 @@ static inline int __builtin_ctzl(unsigned long long x) {
 }
 #endif
 
+#ifndef FSST_MUST_ALIGN_STORES
+#define FSST_MUST_ALIGN_STORES
+#endif
+
 #ifdef __cplusplus
 #define FSST_FALLTHROUGH [[fallthrough]]
 extern "C" {

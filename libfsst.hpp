@@ -77,7 +77,7 @@ struct Symbol {
          val.num = reinterpret_cast<const fsst_unaligned64_t*>(input)[0];
          len = 8;
       } else {
-#ifdef MEMDEBUG 
+#ifdef FSST_MUST_ALIGN_STORES
          for(u32 i=0; i<len; i++) val.str[i] = input[i];
 #else
          ignoredBits = 8*(8-len);
