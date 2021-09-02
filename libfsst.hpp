@@ -40,6 +40,7 @@ typedef uint8_t u8;
 typedef uint16_t u16;
 typedef uint32_t u32;
 typedef uint64_t u64;
+typedef unsigned long long fsst_unaligned64_t __attribute__((aligned(1)));
 
 #define FSST_ENDIAN_MARKER ((u64) 1)
 #define FSST_VERSION_20190218 20190218
@@ -73,7 +74,7 @@ struct Symbol {
    explicit Symbol(const char* input, u32 len) {
       u8 ignoredBits = 0;
       if (len>=8) {
-         val.num = reinterpret_cast<const uint64_t*>(input)[0];
+         val.num = reinterpret_cast<const fsst_unaligned64_t*>(input)[0];
          len = 8;
       } else {
 #ifdef MEMDEBUG 
@@ -81,10 +82,10 @@ struct Symbol {
 #else
          ignoredBits = 8*(8-len);
          if ((reinterpret_cast<uintptr_t>(input)&63)<=(64-8)) {
-            u64 eight = reinterpret_cast<const uint64_t*>(input)[0];
+            u64 eight = reinterpret_cast<const fsst_unaligned64_t*>(input)[0];
             val.num = (eight<<ignoredBits)>>ignoredBits;
          } else {
-            val.num = reinterpret_cast<const uint64_t*>(input+len-8)[0]>>ignoredBits;
+            val.num = reinterpret_cast<const fsst_unaligned64_t*>(input+len-8)[0]>>ignoredBits;
          }
 #endif
       }
@@ -383,7 +384,7 @@ struct Counters {
    }
    u32 count1GetNext(u32 &pos1) { // note: we will advance pos1 to the next nonzero counter in register range
       // read 16-bits single symbol counter, split into two 8-bits numbers (count1Low, count1High), while skipping over zeros
-      u64 high = *(u64*) &count1High[pos1]; // note: this reads 8 subsequent counters [pos1..pos1+7]
+       fsst_unaligned64_t high = *(fsst_unaligned64_t*) &count1High[pos1]; // note: this reads 8 subsequent counters [pos1..pos1+7]
 
       u32 zero = high?(__builtin_ctzl(high)>>3):7UL; // number of zero bytes
       high = (high >> (zero << 3)) & 255; // advance to nonzero counter
@@ -396,7 +397,7 @@ struct Counters {
    }
    u32 count2GetNext(u32 pos1, u32 &pos2) { // note: we will advance pos2 to the next nonzero counter in register range
       // read 12-bits pairwise symbol counter, split into low 8-bits and high 4-bits number while skipping over zeros
-      u64 high = *(u64*) &count2High[pos1][pos2>>1]; // note: this reads 16 subsequent counters [pos2..pos2+15]
+      u64 high = *(fsst_unaligned64_t*) &count2High[pos1][pos2>>1]; // note: this reads 16 subsequent counters [pos2..pos2+15]
       high >>= ((pos2&1) << 2); // odd pos2: ignore the lowest 4 bits & we see only 15 counters
 
       u32 zero = high?(__builtin_ctzl(high)>>2):(15UL-(pos2&1UL)); // number of zero 4-bits counters
